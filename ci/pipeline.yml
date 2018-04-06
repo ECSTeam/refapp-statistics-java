@@ -1,0 +1,68 @@
+resources:
+# source code for the pipeline scripts
+- name: source-code
+  type: git
+  source:
+    uri: https://github.com/ECSTeam/refapp-account-java.git
+    private_key: ((github_private_key))
+
+#- name: slack-notification
+#  type: docker-image
+#  source:
+#    repository: cfcommunity/slack-notification-resource
+#    tag: latest
+
+#- name: slack-alert
+#  type: slack-notification
+#  source:
+#    url: https://hooks.slack.com/services/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
+
+jobs:
+# build source-code
+- name: build-source-code
+  max_in_flight: 1
+  plan:
+  - get: source-code
+    trigger: true
+  - task: compile
+    file: refapp-account-java/ci/tasks/refapp-account/compile/task.yml
+# execute unit tests
+- name: execute-unit-tests
+  max_in_flight: 1
+  plan:
+  - get: source-code
+    trigger: true
+    passed: [build-source-code]
+  - task: unit-tests
+    file:
+# bump package version
+- name: bump-package-version
+  max_in_flight: 1
+  plan:
+  - get: source-code
+    passed: [build-source-code]
+    passed: [execute-unit-tests]
+  - task: version-package
+    file:
+# push to pre-release testing space
+
+# push github release
+
+# push to destination space
+
+#  - task: cf-push
+#    file: refapp-account-java/ci/tasks/refapp-account/cf-push/task.yml
+#    attempts: 2
+#    params:
+#      CF_API: ((CF_API))
+#      CF_API_USER: ((CF_API_USER))
+#      CF_API_PASSWORD: ((CF_API_PASSWORD))
+#      CF_ORG: ((CF_ORG))
+#      CF_SPACE: ((CF_SPACE))
+#
+#- name: unit-tests-refapp-account
+#  max_in_flight: 1
+#  plan:
+#  - get: source-code
+#    passed: [compile-and-push-refapp-account]
+#    file: refapp-account-java/ci/tasks/refapp-account/unit-test/task.yml
